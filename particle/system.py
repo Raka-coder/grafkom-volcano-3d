@@ -39,42 +39,84 @@ class ParticleSystem:
             })
 
     def update(self, dt):
-        """Memperbarui posisi dan warna seluruh partikel (Dioptimalkan untuk performa)."""
-        gravity = np.array([0.0, -12.0, 0.0], dtype=np.float32) 
+        """
+        Memperbarui posisi dan warna seluruh partikel dengan physics yang lebih realistis.
+        Mencakup gravity, air resistance, splashing, dan collision handling yang akurat.
+        """
+        gravity = np.array([0.0, -15.0, 0.0], dtype=np.float32)  # Gravitasi yang lebih kuat
+        drag_coeff = 0.98  # Air resistance coefficient
         new_particles = []
         
         idx = 0
         for p in self.particles:
             p['life'] -= dt
             if p['life'] > 0:
-                is_smoke = p['vel'][1] > 0
+                is_smoke = p['vel'][1] > 5.0  # Smoke jika kecepatan vertikal cukup tinggi
                 
-                # 1. Physics & Forces
-                force = gravity.copy()
+                # 1. Physics & Forces dengan simulasi yang lebih akurat
                 if is_smoke:
-                    # Smoke: Gaya angkat + Pseudo-Curl (Cepat)
-                    force += np.array([0.0, 20.0, 0.0])
-                    # Gunakan sine wave + 1 noise sample (jauh lebih cepat dari 6x pnoise3)
-                    swirl_speed = noise.pnoise2(p['pos'][0] * 0.05, p['pos'][2] * 0.05) * 3.0
-                    p['vel'][0] += math.sin(p['life'] * 2.0) * swirl_speed * dt
-                    p['vel'][2] += math.cos(p['life'] * 2.0) * swirl_speed * dt
+                    # Smoke: Gaya angkat (buoyancy) + Pseudo-Curl untuk swirl
+                    buoyancy = np.array([0.0, 25.0, 0.0], dtype=np.float32)
+                    p['vel'] += buoyancy * dt
+                    
+                    # Turbulence: pseudo-random swirl berdasarkan posisi
+                    swirl_speed = noise.pnoise2(p['pos'][0] * 0.05, p['pos'][2] * 0.05) * 4.0
+                    angle = p['life'] * 3.0
+                    p['vel'][0] += math.sin(angle) * swirl_speed * dt * 0.5
+                    p['vel'][2] += math.cos(angle) * swirl_speed * dt * 0.5
+                    
+                    # Air damping untuk smoke
+                    p['vel'] *= 0.995
                 else:
-                    # Lava: Deteksi benturan kawah (Splash)
-                    if p['pos'][1] < 102.0:
-                        p['pos'][1] = 102.0
-                        p['vel'][1] *= -0.3
-                        p['vel'][0] += (np.random.rand() - 0.5) * 5.0
-                        p['vel'][2] += (np.random.rand() - 0.5) * 5.0
+                    # Lava: Realistic physics dengan gravity dan air resistance
+                    p['vel'] += gravity * dt
+                    
+                    # Air resistance (drag)
+                    p['vel'] *= drag_coeff
+                    
+                    # --- COLLISION DETECTION & SPLASH ---
+                    # Detect benturan dengan kawah crater
+                    crater_height = 102.0
+                    crater_radius = 15.0
+                    dist_to_center = math.sqrt(p['pos'][0]**2 + p['pos'][2]**2)
+                    
+                    if p['pos'][1] <= crater_height and dist_to_center < crater_radius + 5.0:
+                        # Hit the crater floor/walls
+                        p['pos'][1] = crater_height
+                        
+                        # Energy-based bounce
+                        bounce_energy = 0.4 * math.sqrt(p['vel'][0]**2 + p['vel'][1]**2 + p['vel'][2]**2)
+                        p['vel'][1] = abs(p['vel'][1]) * 0.35 + bounce_energy * 0.2
+                        
+                        # Splatter effect: partikel tersebar ke samping
+                        p['vel'][0] += (np.random.rand() - 0.5) * 8.0
+                        p['vel'][2] += (np.random.rand() - 0.5) * 8.0
+                        
+                        # Tambah sedikit lifetime jika terjadi splash
+                        p['life'] = max(p['life'], 0.5)
+                    
+                    # Detect hit dengan terrain di bawah crater
+                    if p['pos'][1] < -5.0:
+                        p['life'] = -1  # Kill particle
                 
-                p['vel'] += force * dt
+                # Update posisi
                 p['pos'] += p['vel'] * dt
                 
-                # 2. Interpolasi & Visual
+                # 2. Color Interpolation dengan gradient yang lebih smooth
                 t = 1.0 - (p['life'] / p['max_life'])
                 c = p['color_start'] * (1.0 - t) + p['color_end'] * t
                 
-                # Smoke membesar, lava mengecil
-                dynamic_scale = p['scale'] * (1.0 + t * 4.0) if is_smoke else p['scale'] * (1.0 - t * 0.5)
+                # Opacity falloff di akhir lifetime
+                alpha_fade = max(0.0, 1.0 - (t - 0.7) / 0.3) if t > 0.7 else 1.0
+                c[3] *= alpha_fade
+                
+                # 3. Dynamic Scale dengan efek visual
+                if is_smoke:
+                    # Smoke grows as it rises and dissipates
+                    dynamic_scale = p['scale'] * (1.0 + t * 5.0) * (1.0 - t * 0.3)
+                else:
+                    # Lava shrinks as it cools
+                    dynamic_scale = p['scale'] * (1.0 - t * 0.6)
                 
                 # Masukkan ke array VBO
                 offset = idx * 8
