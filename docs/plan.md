@@ -1,3 +1,16 @@
-🟢 Visual Langit: Awan telah dihilangkan sesuai permintaan, menyisakan gradasi langit (*Sky Dome*) yang bersih dan jauh lebih ringan untuk performa GPU.
+# Plan Status
 
-12345678
+## ✅ Done
+
+| Fase | Items |
+|------|-------|
+| Fase 1 | Pohon pinus procedural |
+| Fase 2 | Lava flow ribbon mesh |
+| Fase 3 | Lightning + ground glow + embers |
+
+## ❌ Dihapus
+
+| Item | Alasan |
+|------|--------|
+| Batu (`objects/rock.py`) | Permintaan user |
+| Rumput (`objects/grass.py`) | Permintaan user sebelumnya |

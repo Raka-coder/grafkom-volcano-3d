@@ -39,34 +39,30 @@ class ParticleSystem:
             })
 
     def update(self, dt):
-        """
-        Memperbarui posisi dan warna seluruh partikel dengan physics yang lebih realistis.
-        Mencakup gravity, air resistance, splashing, dan collision handling yang akurat.
-        """
-        gravity = np.array([0.0, -15.0, 0.0], dtype=np.float32)  # Gravitasi yang lebih kuat
-        drag_coeff = 0.98  # Air resistance coefficient
+        gravity = np.array([0.0, -15.0, 0.0], dtype=np.float32)
+        drag_coeff = 0.98
         new_particles = []
         
         idx = 0
         for p in self.particles:
             p['life'] -= dt
             if p['life'] > 0:
-                is_smoke = p['vel'][1] > 5.0  # Smoke jika kecepatan vertikal cukup tinggi
+                is_smoke = p['vel'][1] > 5.0
                 
-                # 1. Physics & Forces dengan simulasi yang lebih akurat
                 if is_smoke:
-                    # Smoke: Gaya angkat (buoyancy) + Pseudo-Curl untuk swirl
-                    buoyancy = np.array([0.0, 25.0, 0.0], dtype=np.float32)
+                    buoyancy = np.array([0.0, 28.0, 0.0], dtype=np.float32)
                     p['vel'] += buoyancy * dt
                     
-                    # Turbulence: pseudo-random swirl berdasarkan posisi
-                    swirl_speed = noise.pnoise2(p['pos'][0] * 0.05, p['pos'][2] * 0.05) * 4.0
-                    angle = p['life'] * 3.0
-                    p['vel'][0] += math.sin(angle) * swirl_speed * dt * 0.5
-                    p['vel'][2] += math.cos(angle) * swirl_speed * dt * 0.5
+                    t = 1.0 - (p['life'] / p['max_life'])
+                    wind_drift = np.array([math.sin(t * 2.0) * 2.0, 0.0, math.cos(t * 1.5) * 2.0], dtype=np.float32)
+                    p['vel'] += wind_drift * dt
                     
-                    # Air damping untuk smoke
-                    p['vel'] *= 0.995
+                    swirl_speed = noise.pnoise2(p['pos'][0] * 0.03, p['pos'][2] * 0.03) * 8.0
+                    angle = p['life'] * 2.0 + t * 5.0
+                    p['vel'][0] += math.sin(angle) * swirl_speed * dt * 1.5
+                    p['vel'][2] += math.cos(angle) * swirl_speed * dt * 1.5
+                    
+                    p['vel'] *= 0.992
                 else:
                     # Lava: Realistic physics dengan gravity dan air resistance
                     p['vel'] += gravity * dt
@@ -110,10 +106,8 @@ class ParticleSystem:
                 alpha_fade = max(0.0, 1.0 - (t - 0.7) / 0.3) if t > 0.7 else 1.0
                 c[3] *= alpha_fade
                 
-                # 3. Dynamic Scale dengan efek visual
                 if is_smoke:
-                    # Smoke grows as it rises and dissipates
-                    dynamic_scale = p['scale'] * (1.0 + t * 5.0) * (1.0 - t * 0.3)
+                    dynamic_scale = p['scale'] * (1.0 + t * 8.0) * (1.0 - t * 0.2)
                 else:
                     # Lava shrinks as it cools
                     dynamic_scale = p['scale'] * (1.0 - t * 0.6)

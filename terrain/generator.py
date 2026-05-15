@@ -82,6 +82,12 @@ class TerrainGenerator:
                 normal = np.array([-dx, 1.0, -dz], dtype=np.float32)
                 self.normals[i, j] = normal / np.linalg.norm(normal)
 
+    def get_steepness_at(self, world_x, world_z):
+        h = self.get_height_at(world_x, world_z)
+        dx = self.get_height_at(world_x + 2, world_z) - h
+        dz = self.get_height_at(world_x, world_z + 2) - h
+        return math.sqrt(dx * dx + dz * dz)
+
     def get_height_at(self, world_x, world_z):
         """
         Mengambil ketinggian terrain pada koordinat world tertentu.

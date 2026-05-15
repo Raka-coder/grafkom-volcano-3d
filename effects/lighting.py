@@ -21,7 +21,7 @@ class LightingConfig:
         self.ambient_intensity = 0.25
         
         # Fog configuration
-        self.fog_color = [0.5, 0.6, 0.7]
+        self.fog_color = [0.7, 0.8, 0.95]
         self.fog_density = 0.003
         
     def get_dynamic_lava_color(self, time):
@@ -29,13 +29,11 @@ class LightingConfig:
         Membuat efek kelap-kelip dinamis cahaya magma berdasarkan waktu.
         Menggunakan kombinasi sine waves untuk natural flickering.
         """
-        # Multiple frequencies untuk natural flicker
-        main_flicker = 0.8 + 0.2 * math.sin(time * 3.5)
-        secondary_flicker = 1.0 + 0.15 * math.sin(time * 7.2 + 1.5)
-        tertiary_flicker = 1.0 + 0.1 * math.sin(time * 2.1 + 3.0)
+        main_flicker = 0.9 + 0.1 * math.sin(time * 2.5)
+        secondary_flicker = 1.0 + 0.05 * math.sin(time * 5.0 + 1.5)
         
-        combined_flicker = main_flicker * secondary_flicker * tertiary_flicker
-        combined_flicker = max(0.4, min(1.2, combined_flicker))  # Clamp to reasonable values
+        combined_flicker = main_flicker * secondary_flicker
+        combined_flicker = max(0.8, min(1.1, combined_flicker))
         
         # Warna lava dengan intensity modulation
         return [

@@ -1,4 +1,6 @@
 import os
+import random
+import math
 import numpy as np
 from PIL import Image
 import moderngl
@@ -11,7 +13,10 @@ from rendering.renderer import Renderer
 from particle.system import ParticleSystem
 from particle.emitter import VolcanoEmitter
 from effects.lighting import LightingConfig
-
+from objects.tree import PineTree
+from objects.lava_flow import LavaFlow
+from objects.ground_glow import GroundGlow
+from effects.lightning import Lightning
 from noise import pnoise2
 
 def create_procedural_textures():
@@ -149,14 +154,90 @@ def main():
     renderer.terrain_shader.program['tex_rock'].value = 1
     renderer.terrain_shader.program['tex_lava'].value = 2
     print("[DEBUG] Texture units assigned to shader")
-    
+
+    print("[4.5/5] Inisialisasi shadow map...")
+    renderer.init_shadow(terrain_mesh.vbo, terrain_mesh.ibo, size=2048)
+    light_dir = np.array([0.6, 1.0, 0.4], dtype='f4')
+    light_dir = light_dir / np.linalg.norm(light_dir)
+    renderer.shadow_map.compute_light_matrix(
+        light_dir=light_dir,
+        scene_center=(0.0, 50.0, 0.0),
+        scene_radius=250.0
+    )
+    print(f"  ✓ Shadow map {2048}x{2048} created")
+
     # 5. Setup Sistem Animasi (Partikel, Kamera, Lighting)
     print("[5/5] Inisialisasi sistem dinamik...")
-    p_system = ParticleSystem(win.ctx, renderer.particle_shader.program, max_particles=5000)
+    p_system = ParticleSystem(win.ctx, renderer.particle_shader.program, max_particles=10000)
     emitter = VolcanoEmitter(p_system, center=(0.0, 100.0, 0.0))
     
-    # Camera positioning untuk showcase features
-    # Posisi default: dekat ke crater untuk showcase rim lighting & lava glow
+    print("[5.5/5] Menempatkan objek (pohon, batu, rumput)...")
+    random.seed(42)
+    placed_trees = 0
+    tree_positions = []
+
+    def try_place_tree(base_wx, base_wz, i):
+        nonlocal placed_trees
+        wx = base_wx + random.uniform(-8, 8)
+        wz = base_wz + random.uniform(-8, 8)
+        dist = math.hypot(wx, wz)
+        h = t_gen.get_height_at(wx, wz)
+        steep = t_gen.get_steepness_at(wx, wz)
+        if 2.0 < h < 40.0 and steep < 2.0 and dist > 20.0 and placed_trees < 50:
+            height = random.uniform(5.0, 16.0)
+            tree = PineTree(win.ctx, renderer.object_shader.program,
+                            height=height, segments=10, seed=i * 10 + placed_trees)
+            tree.set_position(wx, h - 0.4, wz)
+            tree.set_rotation(random.uniform(-3, 3), random.uniform(0, 360), 0)
+            renderer.add_object(tree)
+            tree_positions.append((wx, wz))
+            placed_trees += 1
+            return True
+        return False
+
+    for i in range(60):
+        wx = random.uniform(-140.0, 140.0)
+        wz = random.uniform(-140.0, 140.0)
+        try_place_tree(wx, wz, i)
+
+    for wx, wz in tree_positions[:20]:
+        for j in range(random.randint(1, 3)):
+            try_place_tree(wx, wz, int(wx * 10 + j))
+
+    print(f"  ✓ {placed_trees} trees placed")
+
+    print("[5.75/5] Membuat aliran lava...")
+    lava_angles = [math.radians(-45), math.radians(135), math.radians(20)]
+    for i, angle in enumerate(lava_angles):
+        lava = LavaFlow(win.ctx, renderer.lava_shader.program, t_gen,
+                        center=(0.0, 0.0), angle=angle,
+                        start_r=20, end_r=80 + i * 10,
+                        segments=40, width_start=2.0 + i * 0.5,
+                        width_end=5.0 + i * 2.0, curve=0.3 + i * 0.15)
+        renderer.add_lava(lava)
+    print(f"  ✓ {len(lava_angles)} lava flows created")
+
+    print("[5.8/5] Membuat efek atmosferik...")
+    glow_crater = GroundGlow(win.ctx, renderer.glow_shader.program,
+                              center=(0.0, t_gen.get_height_at(0, 0) + 1.0, 0.0),
+                              radius=25.0, color=(1.0, 0.4, 0.05), intensity=1.2)
+    renderer.add_glow(glow_crater)
+    for angle in [0, 90, 180, 270]:
+        ox = math.cos(math.radians(angle)) * 22
+        oz = math.sin(math.radians(angle)) * 22
+        h = t_gen.get_height_at(ox, oz)
+        if h > 80:
+            small = GroundGlow(win.ctx, renderer.glow_shader.program,
+                                center=(ox, h + 1.0, oz),
+                                radius=12.0, color=(1.0, 0.5, 0.1), intensity=0.8)
+            renderer.add_glow(small)
+
+    lightning = Lightning(win.ctx, renderer.unlit_shader.program,
+                          center=(0.0, 150.0, 0.0), spread=25.0,
+                          height_range=(120, 250))
+    renderer.set_lightning(lightning)
+    print("  ✓ Crater glow + volcanic lightning created")
+
     camera = Camera(position=(80.0, 110.0, 80.0), pitch=-20.0)
     
     light_cfg = LightingConfig()
@@ -185,19 +266,24 @@ def main():
         # Update Animasi
         emitter.update(dt)
         p_system.update(dt)
+        lightning.update(dt)
         
         # Render Frame
         # Warna background disamakan dengan warna kabut (fog)
-        win.ctx.clear(0.5, 0.6, 0.7) 
-        
+        win.ctx.clear(0.55, 0.7, 0.95) 
+
+        renderer.render_shadow_map()
+
         # Bind tekstur ke slot masing-masing
         tex_grass.use(location=0)
         tex_rock.use(location=1)
         tex_lava.use(location=2)
         
-        # Render Terrain, Langit & Partikel
         renderer.render_sky(camera, current_time)
         renderer.render_terrain(terrain_mesh, camera, light_cfg.lava_pos, current_time)
+        renderer.render_lava(camera, current_time)
+        renderer.render_objects(camera)
+        renderer.render_lightning(camera)
         renderer.render_particles(p_system, camera)
         
         # Swap Double Buffer

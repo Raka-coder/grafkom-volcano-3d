@@ -11,8 +11,8 @@ class VolcanoEmitter:
         self.system = system
         self.center = center
         self.time_accumulator = 0.0
-        self.base_emit_rate = 350  # Particles per second
-        self.eruption_phase = 0.0  # Untuk dynamic eruption intensity
+        self.base_emit_rate = 500  # Particles per second
+        self.eruption_phase = 0.0
         
     def get_eruption_intensity(self, time):
         """
@@ -54,43 +54,48 @@ class VolcanoEmitter:
                 vy = speed
                 vz = math.sin(angle) * horizontal_speed
                 
-                # Particle type selection dengan probabilitas yang lebih beragam
                 r = random.random()
-                if r < 0.35:  # Lava particles (35%)
+                if r < 0.15:  # Lava particles (15%)
                     color_start = [1.0, 0.35, 0.0, 1.0]
                     color_end = [0.3, 0.05, 0.0, 0.1]
                     life = random.uniform(1.2, 4.0)
                     scale = random.uniform(12.0, 40.0)
                     
-                elif r < 0.70:  # Smoke particles (35%)
-                    # Varying gray levels untuk realism
-                    gray = random.uniform(0.12, 0.35)
-                    color_start = [gray, gray, gray, 0.85]
-                    color_end = [0.03, 0.03, 0.03, 0.0]
-                    life = random.uniform(7.0, 18.0)  # Longer lifetime
-                    scale = random.uniform(35.0, 110.0)
-                    vy *= 0.6
+                elif r < 0.55:  # Smoke particles (40%)
+                    gray = random.uniform(0.15, 0.4)
+                    color_start = [gray, gray, gray, 0.9]
+                    color_end = [0.02, 0.02, 0.02, 0.0]
+                    life = random.uniform(10.0, 22.0)
+                    scale = random.uniform(50.0, 150.0)
+                    vy *= 0.5
                     
-                elif r < 0.90:  # Ash particles (20%)
+                elif r < 0.75:  # Ash particles (20%)
                     gray = random.uniform(0.25, 0.45)
-                    color_start = [gray, gray * 0.9, gray * 0.8, 0.7]  # Slight brown tint
+                    color_start = [gray, gray * 0.9, gray * 0.8, 0.7]
                     color_end = [0.1, 0.08, 0.06, 0.0]
                     life = random.uniform(5.0, 12.0)
-                    scale = random.uniform(8.0, 25.0)
+                    scale = random.uniform(15.0, 40.0)
                     vy *= 0.8
-                    # Ash disperses more
                     vx += (random.random() - 0.5) * 3.0
                     vz += (random.random() - 0.5) * 3.0
                     
-                else:  # Debris/Rock particles (10%)
+                elif r < 0.85:  # Debris/Rock particles (10%)
                     color_start = [0.15, 0.15, 0.15, 1.0]
                     color_end = [0.08, 0.08, 0.08, 0.8]
                     life = random.uniform(2.0, 3.5)
                     scale = random.uniform(4.0, 15.0)
-                    # Debris launches faster and farther
                     vx *= 2.0
                     vz *= 2.0
                     vy *= 0.9
+
+                else:  # Embers (15%)
+                    color_start = [1.0, 0.6, 0.05, 1.0]
+                    color_end = [0.8, 0.15, 0.0, 0.0]
+                    life = random.uniform(3.0, 8.0)
+                    scale = random.uniform(2.0, 6.0)
+                    vy *= 0.25
+                    vx += (random.random() - 0.5) * 4.0
+                    vz += (random.random() - 0.5) * 4.0
                     
                 self.system.emit(
                     pos=spawn_pos,
