@@ -18,7 +18,6 @@ void main() {
     float dist = length(gl_Position.xyz);
     gl_PointSize = (in_scale / dist) * 100.0;
     
-    // Batasan ukuran aman untuk point size GL
-    if (gl_PointSize < 1.0) gl_PointSize = 1.0;
-    if (gl_PointSize > 100.0) gl_PointSize = 100.0;
+    gl_PointSize = max(gl_PointSize, 6.0);
+    gl_PointSize = min(gl_PointSize, 100.0);
 }
