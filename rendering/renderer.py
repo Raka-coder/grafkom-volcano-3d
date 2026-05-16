@@ -18,6 +18,8 @@ class Renderer:
         self.lava_flows = []
         self.glow_decals = []
         self.lightning = None
+        self.ash_intensity = 0.0
+        self.ash_radius = 60.0
 
     def init_shaders(self):
         self.terrain_shader = ShaderProgram(self.ctx, 'shaders/terrain.vert', 'shaders/terrain.frag')
@@ -100,6 +102,8 @@ class Renderer:
         prog.set_uniform('cam_pos', tuple(camera.position))
         prog.set_uniform('light_pos', tuple(light_pos))
         prog.set_uniform('time', time)
+        prog.set_uniform('ash_intensity', self.ash_intensity)
+        prog.set_uniform('ash_radius', self.ash_radius)
 
         self.set_shadow_uniforms(prog)
 
@@ -170,11 +174,12 @@ class Renderer:
 
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
 
-    def render_particles(self, particle_system, camera):
+    def render_particles(self, particle_system, camera, time=0.0):
         self.ctx.enable(moderngl.BLEND)
 
         prog = self.particle_shader
         prog.set_uniform('m_proj', camera.get_projection_matrix().astype('f4').T.tobytes())
         prog.set_uniform('m_view', camera.get_view_matrix().astype('f4').T.tobytes())
+        prog.set_uniform('time', time)
 
         particle_system.render()

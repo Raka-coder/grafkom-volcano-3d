@@ -25,8 +25,7 @@ class ParticleSystem:
         )
         self.active_count = 0
 
-    def emit(self, pos, vel, life, color_start, color_end, scale):
-        """Mendaftarkan partikel baru ke sistem jika belum penuh."""
+    def emit(self, pos, vel, life, color_start, color_end, scale, is_mist=False):
         if len(self.particles) < self.max_particles:
             self.particles.append({
                 'pos': np.array(pos, dtype=np.float32),
@@ -35,7 +34,8 @@ class ParticleSystem:
                 'max_life': life,
                 'color_start': np.array(color_start, dtype=np.float32),
                 'color_end': np.array(color_end, dtype=np.float32),
-                'scale': scale
+                'scale': scale,
+                'is_mist': is_mist,
             })
 
     def update(self, dt):
@@ -47,53 +47,64 @@ class ParticleSystem:
         for p in self.particles:
             p['life'] -= dt
             if p['life'] > 0:
-                is_smoke = p['vel'][1] > 5.0
+                is_mist = p.get('is_mist', False)
                 
-                if is_smoke:
-                    buoyancy = np.array([0.0, 28.0, 0.0], dtype=np.float32)
-                    p['vel'] += buoyancy * dt
-                    
+                if is_mist:
                     t = 1.0 - (p['life'] / p['max_life'])
-                    wind_drift = np.array([math.sin(t * 2.0) * 2.0, 0.0, math.cos(t * 1.5) * 2.0], dtype=np.float32)
-                    p['vel'] += wind_drift * dt
-                    
-                    swirl_speed = noise.pnoise2(p['pos'][0] * 0.03, p['pos'][2] * 0.03) * 8.0
-                    angle = p['life'] * 2.0 + t * 5.0
-                    p['vel'][0] += math.sin(angle) * swirl_speed * dt * 1.5
-                    p['vel'][2] += math.cos(angle) * swirl_speed * dt * 1.5
-                    
-                    p['vel'] *= 0.992
+                    freq = 0.02
+                    curl = 3.0
+                    p['vel'][0] += -math.sin(p['pos'][2] * freq + t * 0.6) * curl * dt
+                    p['vel'][2] +=  math.cos(p['pos'][0] * freq + t * 0.6) * curl * dt
+                    p['vel'][1] += math.sin(t * 1.2 + p['pos'][0] * 0.01) * 0.3 * dt
+                    p['vel'] *= 0.99
                 else:
-                    # Lava: Realistic physics dengan gravity dan air resistance
-                    p['vel'] += gravity * dt
+                    is_smoke = p['vel'][1] > 5.0
                     
-                    # Air resistance (drag)
-                    p['vel'] *= drag_coeff
-                    
-                    # --- COLLISION DETECTION & SPLASH ---
-                    # Detect benturan dengan kawah crater
-                    crater_height = 102.0
-                    crater_radius = 15.0
-                    dist_to_center = math.sqrt(p['pos'][0]**2 + p['pos'][2]**2)
-                    
-                    if p['pos'][1] <= crater_height and dist_to_center < crater_radius + 5.0:
-                        # Hit the crater floor/walls
-                        p['pos'][1] = crater_height
+                    if is_smoke:
+                        buoyancy = np.array([0.0, 28.0, 0.0], dtype=np.float32)
+                        p['vel'] += buoyancy * dt
                         
-                        # Energy-based bounce
-                        bounce_energy = 0.4 * math.sqrt(p['vel'][0]**2 + p['vel'][1]**2 + p['vel'][2]**2)
-                        p['vel'][1] = abs(p['vel'][1]) * 0.35 + bounce_energy * 0.2
+                        t = 1.0 - (p['life'] / p['max_life'])
+                        wind_drift = np.array([math.sin(t * 2.0) * 2.0, 0.0, math.cos(t * 1.5) * 2.0], dtype=np.float32)
+                        p['vel'] += wind_drift * dt
+
+                        freq = 0.03
+                        curl_str = 3.0
+                        p['vel'][0] += -math.sin(p['pos'][2] * freq + t * 1.5) * curl_str * dt
+                        p['vel'][2] +=  math.cos(p['pos'][0] * freq + t * 1.5) * curl_str * dt
                         
-                        # Splatter effect: partikel tersebar ke samping
-                        p['vel'][0] += (np.random.rand() - 0.5) * 8.0
-                        p['vel'][2] += (np.random.rand() - 0.5) * 8.0
-                        
-                        # Tambah sedikit lifetime jika terjadi splash
-                        p['life'] = max(p['life'], 0.5)
-                    
-                    # Detect hit dengan terrain di bawah crater
-                    if p['pos'][1] < -5.0:
-                        p['life'] = -1  # Kill particle
+                        p['vel'] *= 0.992
+                    else:
+                        # Lava: Realistic physics dengan gravity dan air resistance
+                        p['vel'] += gravity * dt
+
+                        # Air resistance (drag)
+                        p['vel'] *= drag_coeff
+
+                        # --- COLLISION DETECTION & SPLASH ---
+                        # Detect benturan dengan kawah crater
+                        crater_height = 102.0
+                        crater_radius = 15.0
+                        dist_to_center = math.sqrt(p['pos'][0]**2 + p['pos'][2]**2)
+
+                        if p['pos'][1] <= crater_height and dist_to_center < crater_radius + 5.0:
+                            # Hit the crater floor/walls
+                            p['pos'][1] = crater_height
+
+                            # Energy-based bounce
+                            bounce_energy = 0.4 * math.sqrt(p['vel'][0]**2 + p['vel'][1]**2 + p['vel'][2]**2)
+                            p['vel'][1] = abs(p['vel'][1]) * 0.35 + bounce_energy * 0.2
+
+                            # Splatter effect: partikel tersebar ke samping
+                            p['vel'][0] += (np.random.rand() - 0.5) * 8.0
+                            p['vel'][2] += (np.random.rand() - 0.5) * 8.0
+
+                            # Tambah sedikit lifetime jika terjadi splash
+                            p['life'] = max(p['life'], 0.5)
+
+                        # Detect hit dengan terrain di bawah crater
+                        if p['pos'][1] < -5.0:
+                            p['life'] = -1  # Kill particle
                 
                 # Update posisi
                 p['pos'] += p['vel'] * dt
@@ -106,10 +117,11 @@ class ParticleSystem:
                 alpha_fade = max(0.0, 1.0 - (t - 0.7) / 0.3) if t > 0.7 else 1.0
                 c[3] *= alpha_fade
                 
-                if is_smoke:
+                if is_mist:
+                    dynamic_scale = p['scale'] * (1.0 + t * 1.5)
+                elif is_smoke:
                     dynamic_scale = p['scale'] * (1.0 + t * 8.0) * (1.0 - t * 0.2)
                 else:
-                    # Lava shrinks as it cools
                     dynamic_scale = p['scale'] * (1.0 - t * 0.6)
                 
                 # Masukkan ke array VBO

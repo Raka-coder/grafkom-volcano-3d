@@ -21,6 +21,9 @@ uniform sampler2D shadow_map;
 uniform mat4 light_space;
 uniform bool shadows_enabled = false;
 
+uniform float ash_intensity = 0.0;
+uniform float ash_radius = 60.0;
+
 float shadow_factor(vec3 world_pos) {
     if (!shadows_enabled) return 1.0;
 
@@ -60,6 +63,13 @@ void main() {
 
     float slope_factor = smoothstep(0.4, 0.8, slope);
     base_color = mix(base_color, color_rock * 0.8, slope_factor);
+
+    float dist_crater = length(FragPos.xz);
+    float ash_dist = 1.0 - smoothstep(5.0, ash_radius, dist_crater);
+    float ash_heat = smoothstep(40.0, 70.0, h);
+    float ash_amount = ash_dist * (1.0 - ash_heat) * ash_intensity;
+    vec3 ash_tint = vec3(0.12, 0.10, 0.08);
+    base_color = mix(base_color, ash_tint, ash_amount);
 
     if (h > 75.0) {
         float lava_factor = smoothstep(75.0, 95.0, h);

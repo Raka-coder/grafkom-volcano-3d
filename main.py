@@ -16,6 +16,8 @@ from effects.lighting import LightingConfig
 from objects.tree import PineTree
 from objects.lava_flow import LavaFlow
 from objects.ground_glow import GroundGlow
+from objects.fumarole import Fumarole, FumaroleSteamEmitter
+from objects.mist import MistEmitter
 from effects.lightning import Lightning
 from noise import pnoise2
 
@@ -168,7 +170,7 @@ def main():
 
     # 5. Setup Sistem Animasi (Partikel, Kamera, Lighting)
     print("[5/5] Inisialisasi sistem dinamik...")
-    p_system = ParticleSystem(win.ctx, renderer.particle_shader.program, max_particles=10000)
+    p_system = ParticleSystem(win.ctx, renderer.particle_shader.program, max_particles=20000)
     emitter = VolcanoEmitter(p_system, center=(0.0, 100.0, 0.0))
     
     print("[5.5/5] Menempatkan objek (pohon, batu, rumput)...")
@@ -238,6 +240,36 @@ def main():
     renderer.set_lightning(lightning)
     print("  ✓ Crater glow + volcanic lightning created")
 
+    print("[5.85/5] Menempatkan fumarol + uap...")
+    random.seed(123)
+    fumarole_emitters = []
+    for _ in range(14):
+        angle = random.uniform(0, 2 * math.pi)
+        r = random.uniform(16.0, 55.0)
+        wx = math.cos(angle) * r
+        wz = math.sin(angle) * r
+        h = t_gen.get_height_at(wx, wz)
+        if 25.0 < h < 85.0:
+            fum = Fumarole(win.ctx, renderer.object_shader.program, (wx, h, wz),
+                           inner_radius=random.uniform(0.5, 1.0),
+                           outer_radius=random.uniform(1.2, 2.2))
+            renderer.add_object(fum)
+            em = FumaroleSteamEmitter(p_system, center=(wx, h, wz),
+                                      rate=random.randint(15, 28))
+            fumarole_emitters.append(em)
+    print(f"  ✓ {len(fumarole_emitters)} fumaroles with steam placed")
+
+    print("[5.9/5] Membuat lapisan kabut (mist/low clouds)...")
+    mist_emitter = MistEmitter(p_system, t_gen, center=(0.0, 0.0, 0.0),
+                               ring_inner=25.0, ring_outer=90.0,
+                               height_base=25.0, height_range=35.0,
+                               rate=25)
+    print("  ✓ Mist emitter initialized")
+
+    renderer.ash_intensity = 0.55
+    renderer.ash_radius = 55.0
+    print("  ✓ Ash layer enabled (intensity=0.55, radius=55)")
+
     camera = Camera(position=(80.0, 110.0, 80.0), pitch=-20.0)
     
     light_cfg = LightingConfig()
@@ -265,8 +297,13 @@ def main():
             
         # Update Animasi
         emitter.update(dt)
+        for fem in fumarole_emitters:
+            fem.update(dt)
+        mist_emitter.update(dt)
         p_system.update(dt)
         lightning.update(dt)
+
+        renderer.ash_intensity = 0.3 + 0.25 * emitter.get_eruption_intensity(current_time)
         
         # Render Frame
         # Warna background disamakan dengan warna kabut (fog)
@@ -284,7 +321,7 @@ def main():
         renderer.render_lava(camera, current_time)
         renderer.render_objects(camera)
         renderer.render_lightning(camera)
-        renderer.render_particles(p_system, camera)
+        renderer.render_particles(p_system, camera, current_time)
         
         # Swap Double Buffer
         win.swap_buffers()

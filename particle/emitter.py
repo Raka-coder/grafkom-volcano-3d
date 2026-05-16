@@ -61,12 +61,12 @@ class VolcanoEmitter:
                     life = random.uniform(1.2, 4.0)
                     scale = random.uniform(12.0, 40.0)
                     
-                elif r < 0.55:  # Smoke particles (40%)
+                elif r < 0.60:  # Smoke particles (45%)
                     gray = random.uniform(0.15, 0.4)
                     color_start = [gray, gray, gray, 0.9]
                     color_end = [0.02, 0.02, 0.02, 0.0]
-                    life = random.uniform(10.0, 22.0)
-                    scale = random.uniform(50.0, 150.0)
+                    life = random.uniform(12.0, 24.0)
+                    scale = random.uniform(60.0, 180.0)
                     vy *= 0.5
                     
                 elif r < 0.75:  # Ash particles (20%)
