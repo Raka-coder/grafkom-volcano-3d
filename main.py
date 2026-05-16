@@ -290,6 +290,9 @@ def main():
         # Poll input event
         win.poll_events()
         
+        # Update camera aspect ratio (for fullscreen resize)
+        camera.set_aspect(win.width, win.height)
+
         # Update logic Kamera (dengan collision detection)
         camera.process_keyboard(win.keys, dt, t_gen)
         if win.mouse_dx != 0.0 or win.mouse_dy != 0.0:

@@ -50,10 +50,45 @@ class Window:
         self.last_mouse_y = height / 2.0
         self.first_mouse = True
 
+        # Fullscreen state
+        self._fullscreen = False
+        self._fullscreen_requested = False
+        self._windowed_x = 50
+        self._windowed_y = 50
+        self._windowed_w = width
+        self._windowed_h = height
+
+        glfw.set_framebuffer_size_callback(self.window, self._resize_callback)
+
+    def _resize_callback(self, window, w, h):
+        self.width = w
+        self.height = h
+        self.ctx.viewport = (0, 0, w, h)
+
+    def _toggle_fullscreen(self):
+        if not self._fullscreen:
+            self._windowed_x, self._windowed_y = glfw.get_window_pos(self.window)
+            self._windowed_w, self._windowed_h = self.width, self.height
+            monitor = glfw.get_primary_monitor()
+            mode = glfw.get_video_mode(monitor)
+            glfw.set_window_monitor(
+                self.window, monitor, 0, 0,
+                mode.size.width, mode.size.height, mode.refresh_rate
+            )
+        else:
+            glfw.set_window_monitor(
+                self.window, None,
+                self._windowed_x, self._windowed_y,
+                self._windowed_w, self._windowed_h, 0
+            )
+        self._fullscreen = not self._fullscreen
+
     def key_callback(self, window, key, scancode, action, mods):
         """Callback saat tombol keyboard ditekan/dilepas"""
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
             glfw.set_window_should_close(window, True)
+        if key == glfw.KEY_F and action == glfw.PRESS:
+            self._fullscreen_requested = True
         if action == glfw.PRESS:
             self.keys[key] = True
         elif action == glfw.RELEASE:
@@ -83,6 +118,9 @@ class Window:
 
     def poll_events(self):
         """Memproses antrian event glfw"""
+        if self._fullscreen_requested:
+            self._toggle_fullscreen()
+            self._fullscreen_requested = False
         self.mouse_dx = 0.0
         self.mouse_dy = 0.0
         glfw.poll_events()

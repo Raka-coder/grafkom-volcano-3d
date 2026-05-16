@@ -18,6 +18,7 @@ class Camera:
         self.pitch = pitch
         self.speed = speed
         self.sens = sens
+        self.aspect = 1280.0 / 720.0
         
         self.update_vectors()
 
@@ -94,14 +95,17 @@ class Camera:
         res[0:3, 3] = [-np.dot(s, eye), -np.dot(u, eye), np.dot(f, eye)]
         return res
 
-    def get_projection_matrix(self, fov=45.0, aspect=1280.0/720.0, near=0.1, far=1000.0):
+    def set_aspect(self, w, h):
+        self.aspect = w / h
+
+    def get_projection_matrix(self, fov=45.0, near=0.1, far=1000.0):
         """
         Menghasilkan Perspective Projection Matrix.
         Memberikan efek depth (benda jauh terlihat kecil).
         """
         f = 1.0 / math.tan(math.radians(fov) / 2.0)
         res = np.zeros((4, 4), dtype=np.float32)
-        res[0, 0] = f / aspect
+        res[0, 0] = f / self.aspect
         res[1, 1] = f
         res[2, 2] = (far + near) / (near - far)
         res[3, 2] = -1.0

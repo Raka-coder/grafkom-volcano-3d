@@ -84,6 +84,8 @@ python main.py
 - `shaders/`: Source code GLSL (Vertex & Fragment shaders).
 - `assets/`: Tekstur dan aset visual lainnya.
 - `docs/`: Dokumentasi lengkap untuk laporan:
+  - `pembahasan.md` - Pembahasan konsep Computer Graphics dengan referensi kode
+  - `transformasi_dan_koordinat.md` - Pembahasan khusus matriks transformasi (T/R/S) & sistem koordinat
   - `implementation_details.md` - Technical details lengkap semua sistem
   - `feature_summary.md` - Ringkasan fitur dengan formula dan konstanta
   - `visual_description.md` - Deskripsi visual hasil implementasi
