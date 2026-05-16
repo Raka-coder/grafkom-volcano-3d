@@ -71,10 +71,10 @@ void main() {
     vec3 ash_tint = vec3(0.12, 0.10, 0.08);
     base_color = mix(base_color, ash_tint, ash_amount);
 
-    if (h > 75.0) {
-        float lava_factor = smoothstep(75.0, 95.0, h);
+    if (h > 80.0) {
+        float lava_factor = smoothstep(80.0, 92.0, h);
         float dist_center = length(FragPos.xz);
-        float pulse_intensity = smoothstep(15.0, 8.0, dist_center);
+        float pulse_intensity = smoothstep(12.0, 5.0, dist_center);
 
         float pulse = 0.92 + 0.08 * sin(time * 2.5) + 0.04 * sin(time * 6.3);
         pulse *= pulse_intensity + 0.5;
