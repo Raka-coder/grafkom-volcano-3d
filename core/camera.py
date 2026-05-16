@@ -19,7 +19,17 @@ class Camera:
         self.speed = speed
         self.sens = sens
         self.aspect = 1280.0 / 720.0
+
+        self._spawn_pos = np.array(position, dtype=np.float32)
+        self._spawn_yaw = yaw
+        self._spawn_pitch = pitch
         
+        self.update_vectors()
+
+    def reset_position(self):
+        self.position = self._spawn_pos.copy()
+        self.yaw = self._spawn_yaw
+        self.pitch = self._spawn_pitch
         self.update_vectors()
 
     def update_vectors(self):

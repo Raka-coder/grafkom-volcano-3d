@@ -4,6 +4,7 @@ import math
 import numpy as np
 from PIL import Image
 import moderngl
+import glfw
 
 from core.window import Window
 from core.camera import Camera
@@ -270,7 +271,7 @@ def main():
     renderer.ash_radius = 55.0
     print("  ✓ Ash layer enabled (intensity=0.55, radius=55)")
 
-    camera = Camera(position=(80.0, 110.0, 80.0), pitch=-20.0)
+    camera = Camera(position=(0.0, 30.0, 130.0), yaw=-90.0, pitch=10.0)
     
     light_cfg = LightingConfig()
     
@@ -278,9 +279,10 @@ def main():
     
     print("\n--- SIMULASI BERJALAN ---")
     print("Gunakan WASD untuk bergerak dan Mouse untuk mengubah arah pandang.")
-    print("Tekan ESC untuk keluar.")
+    print("Tekan R untuk reset posisi kamera. Tekan ESC untuk keluar.")
     
     # --- MAIN LOOP ---
+    _r_prev = False
     while win.is_running():
         # Menghitung delta time (waktu antar frame)
         current_time = win.get_time()
@@ -292,6 +294,12 @@ def main():
         
         # Update camera aspect ratio (for fullscreen resize)
         camera.set_aspect(win.width, win.height)
+
+        # Reset kamera ke spawn awal (tekan R, edge detection)
+        r_down = win.keys.get(glfw.KEY_R, False)
+        if r_down and not _r_prev:
+            camera.reset_position()
+        _r_prev = r_down
 
         # Update logic Kamera (dengan collision detection)
         camera.process_keyboard(win.keys, dt, t_gen)
