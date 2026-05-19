@@ -41,3 +41,12 @@ assets/textures/*.png
 # OS
 .DS_Store
 Thumbs.db
+
+# Local documentation (not pushed to GitHub)
+docs/
+AGENTS.md
+FEATURE_SHOWCASE.md
+GEMINI.md
+IMPLEMENTATION_SUMMARY.md
+QUICKSTART.md
+presentasi.md

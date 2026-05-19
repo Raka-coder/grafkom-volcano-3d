@@ -1,119 +1,161 @@
-# 🌋 3D Volcano Eruption Simulation (ModernGL)
+# 3D Volcano Eruption Simulation (ModernGL)
 
-Simulasi gunung berapi 3D yang realistis menggunakan Python dan library ModernGL. Project ini menggunakan teknik rendering modern seperti procedural terrain, particle systems, dan lighting berbasis shader.
+Simulasi gunung berapi 3D realistis menggunakan Python dan ModernGL (OpenGL 3.3+). Menampilkan procedural terrain, multi-partikel erupsi, dynamic lighting, shadow mapping, dan efek atmosferik vulkanik.
 
-## ✨ Fitur Utama
+## Fitur
 
-- **Procedural Terrain:** Gunung dan kawah dihasilkan menggunakan algoritma Perlin Noise 3D dengan multiple cone-shaped mountains.
-- **Eruption System:** Simulasi partikel advanced dengan 4 jenis partikel (Lava, Smoke, Ash, Debris) dengan realistic physics.
-- **Advanced Shaders:**
-  - Blinn-Phong lighting dengan dual light sources (Sun + Lava glow)
-  - Rim lighting untuk efek dramatik
-  - Dynamic flickering dari lava light (non-repetitive pattern)
-  - Sky gradient dengan cloud animation dan sun disk
-- **Texture Blending:** Multi-layer FBM textures untuk grass, rock, dan lava dengan height-based dan slope-based blending.
-- **Particle Physics:**
-  - Gravity dan air resistance untuk realistic motion
-  - Collision detection dengan crater
-  - Splashing dan bounce effects
-  - Buoyancy untuk smoke rising
-  - Turbulent swirl motion
-- **FPS Camera:** Navigasi bebas dengan mouse dan keyboard, free-look system.
-- **Dynamic Fog:** Exponential fog untuk atmospheric depth.
-- **High Quality Visuals:** 512×512 procedural textures, smooth normal calculations, realistic material appearance.
+### Terrain & Medan
+- **400×400 heightmap grid** (~160K vertex, ~318K segitiga) dari Perlin Noise 3D
+- Multiple cone-shaped mountains dengan crater depression
+- Multi-layer texture splatting: Grass, Rock, Lava (height-based + slope-based)
+- FBM (Fractional Brownian Motion) procedural textures 512×512 (7-8 octaves)
+- Ash deposition layer dinamis (intensitas 0.3-0.55, radius 55)
+- Rim lighting di tepi kawah dengan pulsa sinusoidal
 
-## 📚 Library yang Digunakan
+### Sistem Partikel Erupsi
+- **20.000 max particles** — single GL_POINTS draw call
+- 5 jenis partikel: Lava (15%), Smoke (45%), Ash (20%), Debris (10%), Embers (15%)
+- Dynamic emission rate: 500 partikel/detik × intensitas erupsi
+- Intensitas erupsi: produk 2 gelombang sinus — pola natural tidak seragam
+- Fisika: Gravity (−15 m/s²), air resistance, bounce (35% energi), splash, buoyancy (+28 m/s² asap)
+- Smoke curl turbulence, wind drift oscillasi horizontal
+- 14 fumarole vents (steam), mist/low cloud ring
 
-Project ini menggunakan beberapa library Python utama untuk grafika dan komputasi:
+### Pencahayaan
+- **Blinn-Phong** dengan dual light sources: Sun (directional) + Lava Glow (point)
+- Dynamic lava light flickering: kombinasi sine waves non-repetitif
+- PCF Soft Shadows 2048×2048 dengan kernel 3×3
+- Ambient occlusion berdasarkan ketinggian
+- Exponential fog
 
-1. **ModernGL:** Wrapper OpenGL modern untuk manajemen buffer, shader, dan rendering pipeline.
-2. **GLFW:** Library untuk pembuatan window, manajemen konteks OpenGL, dan input handling.
-3. **NumPy:** Digunakan untuk komputasi matriks (view/projection) dan pemrosesan vertex data.
-4. **Pillow (PIL):** Digunakan untuk memuat dan memproses aset tekstur gambar.
-5. **Noise (Local):** Implementasi Perlin Noise lokal untuk generasi medan dan variasi partikel.
+### Efek Atmosfer
+- Sky gradient 4 lapis + sun disk dengan glow halo
+- Volcanic lightning: random interval 0.5-3 detik, branch probability 40%
+- 3 aliran lava procedural dari kawah (flow animation + pulse)
+- Ground glow decals di crater
 
-## 🛠️ Prasyarat
+### Kamera & Kontrol
+- FPS camera: WASD + mouse look
+- Collision detection dengan terrain
+- R: reset ke spawn
+- F: fullscreen toggle
+- ESC: keluar
 
-- **Python 3.10** atau versi yang lebih baru.
-- Kartu grafis yang mendukung **OpenGL 3.3+**.
+### 8 Shader Programs
+| Shader | Fungsi |
+|--------|--------|
+| Terrain | Texture splatting, Blinn-Phong, PCF shadow, rim light, ash, fog |
+| Object | Blinn-Phong + PCF shadow, vertex color (pohon, fumarol) |
+| Particle | Point sprite, distance-based size, radial alpha |
+| Lava | Procedural flow, pulse, vein patterns |
+| Sky | Multi-layer gradient + sun disk |
+| Shadow | Depth-only pass 2048×2048 |
+| Unlit | Flat color + alpha (lightning bolts) |
+| Glow | Radial gradient glow decals |
 
-## 🚀 Panduan Instalasi
+## Prasyarat
 
-1. **Clone Repositori:**
+- Python 3.10+
+- OpenGL 3.3+ GPU
 
-   ```bash
-   git clone https://github.com/username/uas-grafkom.git
-   cd volcano-moderngl
-   ```
-
-2. **Buat Virtual Environment (Disarankan):**
-
-   ```bash
-   python -m venv venv
-   # Aktifkan di Windows:
-   venv\Scripts\activate
-   # Aktifkan di Linux/macOS:
-   source venv/bin/activate
-   ```
-
-3. **Instal Dependensi:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## 🎮 Cara Menjalankan
-
-Jalankan skrip utama menggunakan perintah berikut:
+## Instalasi
 
 ```bash
+git clone https://github.com/username/uas-grafkom.git
+cd volcano-moderngl
+python -m venv venv
+venv\Scripts\activate          # Windows
+pip install -r requirements.txt
 python main.py
 ```
 
-### Kontrol Navigasi:
+## Kontrol
 
-- **W, A, S, D:** Bergerak maju, kiri, mundur, dan kanan.
-- **Mouse:** Mengarahkan pandangan (Look around).
-- **ESC:** Keluar dari simulasi.
+| Tombol | Aksi |
+|--------|------|
+| W/A/S/D | Bergerak maju/kiri/mundur/kanan |
+| Mouse | Look around |
+| R | Reset kamera ke spawn |
+| F | Fullscreen toggle |
+| ESC | Keluar |
 
-## 📂 Struktur Folder
+## Struktur Proyek
 
-- `core/`: Logika dasar window (GLFW) dan kamera FPS.
-- `terrain/`: Generator heightmap dan pengelolaan mesh gunung.
-- `particle/`: Sistem partikel untuk efek erupsi.
-- `rendering/`: Pengelolaan shader dan proses rendering utama.
-- `shaders/`: Source code GLSL (Vertex & Fragment shaders).
-- `assets/`: Tekstur dan aset visual lainnya.
-- `docs/`: Dokumentasi lengkap untuk laporan:
-  - `pembahasan.md` - Pembahasan konsep Computer Graphics dengan referensi kode
-  - `transformasi_dan_koordinat.md` - Pembahasan khusus matriks transformasi (T/R/S) & sistem koordinat
-  - `implementation_details.md` - Technical details lengkap semua sistem
-  - `feature_summary.md` - Ringkasan fitur dengan formula dan konstanta
-  - `visual_description.md` - Deskripsi visual hasil implementasi
-  - `implementation_plan.md` - Rencana implementasi awal
+```
+volcano-moderngl/
+├── main.py                 # Entrypoint — pipeline inisialisasi & main loop
+├── requirements.txt        # Dependensi Python
+├── noise.py                # Implementasi Perlin Noise lokal (override PyPI noise)
+│
+├── core/
+│   ├── window.py           # GLFW window, input, fullscreen
+│   └── camera.py           # FPS camera, view/projection matrix
+│
+├── terrain/
+│   ├── generator.py        # Perlin noise heightmap + volcano shape
+│   └── mesh.py             # Terrain mesh (VBO/IBO/VAO)
+│
+├── rendering/
+│   ├── renderer.py         # Orchestrator rendering: 8 shader programs, shadow pass
+│   ├── shader.py           # ShaderProgram loader + uniform setter
+│   └── shadow.py           # Shadow map 2048×2048 + light matrix
+│
+├── particle/
+│   ├── system.py           # GPU particle system (dynamic VBO, physics update)
+│   └── emitter.py          # Volcano emitter (5 particle types, eruption cycle)
+│
+├── effects/
+│   ├── lighting.py         # Sun + lava glow + fog config
+│   └── lightning.py        # Volcanic lightning (procedural bolts + branches)
+│
+├── objects/
+│   ├── base.py             # GameObject base (model matrix, Euler rotation)
+│   ├── tree.py             # PineTree procedural (trunk + 4 cone layers)
+│   ├── lava_flow.py        # LavaFlow procedural strip with terrain follow
+│   ├── ground_glow.py      # GroundGlow radial decal
+│   ├── fumarole.py         # Fumarole vent + steam emitter
+│   └── mist.py             # MistEmitter ring around volcano
+│
+├── shaders/                # 16 file GLSL (8 vertex + 8 fragment)
+│   ├── terrain.vert/frag   # Main terrain shader
+│   ├── particle.vert/frag  # Point sprite particles
+│   ├── sky.vert/frag       # Sky dome gradient
+│   ├── object.vert/frag    # 3D objects (trees, fumaroles)
+│   ├── lava.vert/frag      # Lava flow decal
+│   ├── shadow.vert/frag    # Shadow map depth pass
+│   ├── unlit.vert/frag     # Lightning bolts
+│   └── glow.vert/frag      # Ground glow decals
+│
+└── assets/textures/        # Procedural textures (auto-generated, .gitignore)
+    ├── grass.png           # 512×512 FBM grass
+    ├── rock.png            # 512×512 FBM rock
+    └── lava.png            # 512×512 FBM lava + crack pattern
+```
 
-## 📖 Dokumentasi untuk Laporan
+## Parameter Kunci
 
-Untuk penulisan laporan, silakan merujuk ke dokumentasi berikut:
+| Parameter | Nilai |
+|-----------|-------|
+| Grid terrain | 400×400 |
+| World bounds | −200 s/d +200 |
+| Puncak gunung | ~105 unit |
+| Kawah | radius 18, depth ~20 unit |
+| Shadow map | 2048×2048 |
+| Max partikel | 20.000 |
+| FOV | 45° |
+| Near/far plane | 0.1 / 1000 |
+| Pohon | ~50 PineTree procedural |
+| Aliran lava | 3 strip, radius 20→90 |
+| Fumarol | 14 vents |
+| Mist | ring 25→90, height 25-60 |
 
-### Bagian 3.1: Implementasi Lingkungan dan Medan
+## Dependensi
 
-- File: [`docs/visual_description.md`](docs/visual_description.md) - Sektion "Aspek Visual Medan & Tekstur"
-- File: [`docs/implementation_details.md`](docs/implementation_details.md) - Sektion "Implementasi Lingkungan dan Medan 3D"
-- Topik: Procedural generation, texture blending, FBM implementation
-
-### Bagian 3.2: Implementasi Sistem Partikel Erupsi
-
-- File: [`docs/feature_summary.md`](docs/feature_summary.md) - Sektion "Implementasi Sistem Partikel Erupsi"
-- File: [`docs/visual_description.md`](docs/visual_description.md) - Sektion "Aspek Visual Sistem Partikel"
-- File: [`docs/implementation_details.md`](docs/implementation_details.md) - Sektion "Implementasi Sistem Partikel Erupsi"
-- Topik: Physics simulation, particle types, dynamic eruption
-
-### Bagian 3.3: Implementasi Pencahayaan dan Efek Atmosfer
-
-- File: [`docs/feature_summary.md`](docs/feature_summary.md) - Sektion "Implementasi Pencahayaan & Efek Atmosfer"
-- File: [`docs/visual_description.md`](docs/visual_description.md) - Sektion "Aspek Visual Pencahayaan & Atmosfer"
-- File: [`docs/implementation_details.md`](docs/implementation_details.md) - Sektion "Implementasi Pencahayaan dan Efek Atmosfer"
-- Topik: Blinn-Phong, light flickering, sky rendering, fog
+- ModernGL
+- glfw
+- numpy
+- Pillow
+- noise (PyPI — tetapi efektif tidak digunakan; local `noise.py` yang aktif)
 
 ---
 
